@@ -1,16 +1,15 @@
 // ============================================
-// ====== API Wrapper for Supabase ============
+// ====== API Wrapper for Supabase (No Auth) ==
 // ============================================
 const API = (() => {
-  const { SUPABASE_URL, TABLES, INCOME_CATEGORIES } = window.APP_CONFIG;
+  const { SUPABASE_URL, SUPABASE_ANON_KEY, TABLES, INCOME_CATEGORIES } = window.APP_CONFIG;
   const BASE = `${SUPABASE_URL}/rest/v1`;
 
-  // ---------- Headers พร้อม JWT ----------
+  // ---------- Headers ----------
   function buildHeaders() {
-    const token = Auth.getToken();
     return {
-      'apikey': window.APP_CONFIG.SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${token}`,
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
       'Content-Type': 'application/json',
       'Prefer': 'return=representation'
     };
@@ -48,7 +47,7 @@ const API = (() => {
     });
   }
 
-  // ---------- Sanitize (กัน undefined) ----------
+  // ---------- Utils ----------
   function toNum(v) {
     const n = parseFloat(v);
     return isNaN(n) ? 0 : n;
@@ -57,7 +56,7 @@ const API = (() => {
   return {
 
     // ============================================
-    // ========== DASHBOARD (ตัวหลัก) =============
+    // ========== DASHBOARD =======================
     // ============================================
     async getDashboard(year, month) {
       const [transactions, incomes, templates] = await Promise.all([
@@ -66,7 +65,6 @@ const API = (() => {
         rest(`/${TABLES.TEMPLATES}?order=id.asc`)
       ]);
 
-      // ===== คำนวณ summary =====
       let totalPaid = 0, totalUnpaid = 0, totalNoBalance = 0, totalAll = 0;
       let totalIncome = 0;
       const byCategory = {};
@@ -89,7 +87,6 @@ const API = (() => {
 
       incomes.forEach(i => { totalIncome += toNum(i.amount); });
 
-      // ===== Categories จาก templates =====
       const categories = [...new Set(templates.map(t => t.category))].sort();
 
       return {
@@ -255,16 +252,6 @@ const API = (() => {
         p_year: year, p_month: month
       });
       return { generated: result || 0 };
-    },
-
-    // ============================================
-    // ========== BACKWARD COMPAT =================
-    // ============================================
-    getTransactions: (y, m) =>
-      rest(`/${TABLES.TRANSACTIONS}?year=eq.${y}&month=eq.${m}`),
-    getIncomes: (y, m) =>
-      rest(`/${TABLES.INCOMES}?year=eq.${y}&month=eq.${m}`),
-    getCategories: () =>
-      rest(`/${TABLES.TEMPLATES}?select=category`)
+    }
   };
 })();
