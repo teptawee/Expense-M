@@ -24,6 +24,12 @@ body {
 .dark .bg-gray-200 {
   background: #334155 !important;
 }
+.dark .bg-slate-50 {
+  background: #1e293b !important;
+}
+.dark .bg-slate-200 {
+  background: #334155 !important;
+}
 .dark .text-slate-800 {
   color: #e2e8f0 !important;
 }
@@ -31,7 +37,7 @@ body {
   color: #94a3b8 !important;
 }
 
-/* ===== Card hover effect ===== */
+/* ===== Card hover ===== */
 .card {
   transition: all 0.2s ease;
 }
@@ -40,22 +46,16 @@ body {
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
 }
 
-/* ===== Fade in animation ===== */
+/* ===== Fade in ===== */
 .fade-in {
   animation: fadeIn 0.3s ease;
 }
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* ===== Tab button ===== */
+/* ===== Tab ===== */
 .tab-btn {
   transition: all 0.2s ease;
   background: #ffffff;
@@ -71,19 +71,13 @@ body {
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
-/* ===== Toast animation ===== */
+/* ===== Toast ===== */
 #toast > div {
   animation: slideIn 0.3s ease;
 }
 @keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+  from { opacity: 0; transform: translateX(100%); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
 /* ===== Modal ===== */
@@ -91,7 +85,7 @@ body {
   display: flex;
 }
 
-/* ===== Scrollbar สวยๆ ===== */
+/* ===== Scrollbar ===== */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -107,7 +101,7 @@ body {
   background: #94a3b8;
 }
 
-/* ===== Responsive tweaks ===== */
+/* ===== Responsive ===== */
 @media (max-width: 640px) {
   .card:hover {
     transform: none;
