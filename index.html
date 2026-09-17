@@ -1,185 +1,75 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>💰 บันทึกค่าใช้จ่าย</title>
-
-<!-- Libraries (CDN) -->
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-<!-- Custom CSS -->
-<link rel="stylesheet" href="style.css">
-</head>
-<body class="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen dark:bg-slate-900">
-
-<!-- Toast -->
-<div id="toast" class="fixed top-4 right-4 z-50 hidden">
-  <div class="bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg"></div>
+<!-- Tabs -->
+<div class="flex gap-2 mb-4 overflow-x-auto">
+  <button onclick="switchTab('dash')" id="tab-dash" class="tab-btn px-4 py-2 rounded-full font-semibold whitespace-nowrap">📊 Dashboard</button>
+  <button onclick="switchTab('expenses')" id="tab-expenses" class="tab-btn px-4 py-2 rounded-full font-semibold whitespace-nowrap">📝 รายการเดือนนี้</button>
+  <button onclick="switchTab('templates')" id="tab-templates" class="tab-btn px-4 py-2 rounded-full font-semibold whitespace-nowrap">📋 รายการประจำ</button>
+  <button onclick="switchTab('report')" id="tab-report" class="tab-btn px-4 py-2 rounded-full font-semibold whitespace-nowrap">📈 รายงาน</button>
 </div>
 
-<div class="max-w-5xl mx-auto p-4 pb-20">
+<!-- ===== PAGE: EXPENSES ===== -->
+<div id="page-expenses" class="hidden">
 
-  <!-- Header -->
-  <div class="flex justify-between items-center mb-4">
-    <div>
-      <h1 class="text-2xl font-bold text-slate-800 dark:text-white">💰 บันทึกค่าใช้จ่าย</h1>
-      <p class="text-xs text-slate-500" id="todayText"></p>
+  <!-- สรุปยอด -->
+  <div id="expenseSummary" class="grid grid-cols-3 gap-2 mb-4"></div>
+
+  <!-- ฟอร์มเพิ่ม -->
+  <div class="card bg-white rounded-xl p-4 shadow mb-4">
+    <h3 class="font-bold mb-3">➕ เพิ่มรายการใหม่ (เดือนนี้)</h3>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
+      <input id="newTitle" placeholder="ชื่อรายการ" class="border rounded-lg px-3 py-2 col-span-2 text-sm">
+      <input id="newAmount" type="number" placeholder="จำนวนเงิน" class="border rounded-lg px-3 py-2 text-sm">
+      <select id="newCategory" class="border rounded-lg px-3 py-2 text-sm"></select>
+      <input id="newDueDay" type="number" min="1" max="31" placeholder="วันครบกำหนด" class="border rounded-lg px-3 py-2 text-sm col-span-2">
+      <button onclick="addNewCategory()" class="text-xs bg-slate-200 dark:bg-slate-600 rounded-lg px-3 py-2">➕ หมวดหมู่ใหม่</button>
     </div>
-    <button onclick="toggleDark()" class="p-2 rounded-full bg-white dark:bg-slate-700 shadow">🌙</button>
+    <button onclick="addExpense()" class="w-full md:w-auto bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:shadow-lg transition">
+      บันทึก
+    </button>
   </div>
 
-  <!-- Tabs -->
-  <div class="flex gap-2 mb-4 overflow-x-auto">
-    <button onclick="switchTab('dash')" id="tab-dash" class="tab-btn px-4 py-2 rounded-full font-semibold whitespace-nowrap">📊 Dashboard</button>
-    <button onclick="switchTab('list')" id="tab-list" class="tab-btn px-4 py-2 rounded-full font-semibold whitespace-nowrap">📝 รายการ</button>
-    <button onclick="switchTab('report')" id="tab-report" class="tab-btn px-4 py-2 rounded-full font-semibold whitespace-nowrap">📈 รายงาน</button>
+  <!-- ตัวกรอง -->
+  <div class="card bg-white rounded-xl p-3 shadow mb-4 flex flex-wrap gap-2">
+    <select id="filterMonth" onchange="renderExpensesPage()" class="border rounded-lg px-3 py-1 text-sm"></select>
+    <select id="filterStatus" onchange="renderExpensesPage()" class="border rounded-lg px-3 py-1 text-sm">
+      <option value="">ทุกสถานะ</option>
+      <option value="paid">✅ จ่ายแล้ว</option>
+      <option value="pending">⏳ รอจ่าย</option>
+      <option value="overdue">⚠️ เลยกำหนด</option>
+    </select>
   </div>
 
-  <!-- ===== TAB: DASHBOARD ===== -->
-  <div id="page-dash">
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-      <div class="card bg-white rounded-xl p-4 shadow">
-        <div class="text-xs text-slate-500">รวมทั้งหมด</div>
-        <div id="sumTotal" class="text-xl font-bold text-blue-600">฿0</div>
-      </div>
-      <div class="card bg-white rounded-xl p-4 shadow">
-        <div class="text-xs text-slate-500">✅ จ่ายแล้ว</div>
-        <div id="sumPaid" class="text-xl font-bold text-green-600">฿0</div>
-      </div>
-      <div class="card bg-white rounded-xl p-4 shadow">
-        <div class="text-xs text-slate-500">⏳ รอจ่าย</div>
-        <div id="sumPending" class="text-xl font-bold text-yellow-600">฿0</div>
-      </div>
-      <div class="card bg-white rounded-xl p-4 shadow">
-        <div class="text-xs text-slate-500">⚠️ เลยกำหนด</div>
-        <div id="sumOverdue" class="text-xl font-bold text-red-600">฿0</div>
-      </div>
-    </div>
+  <!-- รายการแยกหมวดหมู่ -->
+  <div id="list"></div>
+</div>
 
-    <div class="card bg-white rounded-xl p-4 shadow mb-4">
-      <div class="text-sm text-slate-500 mb-2">ความคืบหน้าการจ่ายเดือนนี้</div>
-      <div class="w-full bg-gray-200 rounded-full h-3">
-        <div id="progressBar" class="bg-gradient-to-r from-green-400 to-blue-500 h-3 rounded-full transition-all" style="width:0%"></div>
-      </div>
-      <div id="progressText" class="text-xs text-slate-500 mt-1">0%</div>
-    </div>
+<!-- ===== PAGE: TEMPLATES ===== -->
+<div id="page-templates" class="hidden">
 
-    <div class="grid md:grid-cols-2 gap-4 mb-4">
-      <div class="card bg-white rounded-xl p-4 shadow">
-        <h3 class="font-bold mb-2">🍩 สัดส่วนตามหมวดหมู่</h3>
-        <canvas id="pieChart" height="200"></canvas>
-      </div>
-      <div class="card bg-white rounded-xl p-4 shadow">
-        <h3 class="font-bold mb-2">📊 6 เดือนย้อนหลัง</h3>
-        <canvas id="barChart" height="200"></canvas>
-      </div>
-    </div>
-
-    <div class="card bg-white rounded-xl p-4 shadow">
-      <h3 class="font-bold mb-2">🔔 รายการที่ยังไม่จ่าย</h3>
-      <div id="pendingList" class="space-y-2"></div>
-    </div>
-  </div>
-
-  <!-- ===== TAB: รายการ ===== -->
-  <div id="page-list" class="hidden">
-
-    <!-- ฟอร์มเพิ่ม -->
-    <div class="card bg-white rounded-xl p-4 shadow mb-4">
-      <h3 class="font-bold mb-3">➕ เพิ่มรายการใหม่</h3>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
-        <input id="newTitle" placeholder="ชื่อรายการ" class="border rounded-lg px-3 py-2 col-span-2 text-sm">
-        <input id="newAmount" type="number" placeholder="จำนวนเงิน" class="border rounded-lg px-3 py-2 text-sm">
-        <select id="newCategory" class="border rounded-lg px-3 py-2 text-sm">
-          <option>ที่อยู่อาศัย</option>
-          <option>อินเทอร์เน็ต</option>
-          <option>โทรศัพท์</option>
-          <option>สาธารณูปโภค</option>
-          <option>ครอบครัว</option>
-          <option>เงินออม</option>
-          <option>ช้อปปิ้ง</option>
-          <option>บัตรเครดิต</option>
-          <option>อื่นๆ</option>
-        </select>
-        <input id="newDueDay" type="number" min="1" max="31" placeholder="วันครบกำหนด (1-31)" class="border rounded-lg px-3 py-2 text-sm col-span-2">
-      </div>
-      <button onclick="addExpense()" class="w-full md:w-auto bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:shadow-lg transition">
-        บันทึก
+  <!-- ปุ่มสร้างรายการทั้งเดือน -->
+  <div class="card bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl p-4 shadow mb-4">
+    <h3 class="font-bold mb-2">🚀 สร้างรายการของเดือนจากแม่แบบ</h3>
+    <p class="text-xs opacity-90 mb-3">ดึงรายการทั้งหมดด้านล่างมาสร้างเป็นรายการของเดือนที่เลือก</p>
+    <div class="flex flex-wrap gap-2">
+      <select id="genMonth" class="text-slate-800 rounded-lg px-3 py-2 text-sm"></select>
+      <select id="genYear" class="text-slate-800 rounded-lg px-3 py-2 text-sm"></select>
+      <button onclick="generateMonth()" class="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-50">
+        ✨ สร้างเลย
       </button>
     </div>
-
-    <!-- ตัวกรอง -->
-    <div class="card bg-white rounded-xl p-3 shadow mb-4 flex flex-wrap gap-2">
-      <select id="filterMonth" onchange="loadExpenses()" class="border rounded-lg px-3 py-1 text-sm"></select>
-      <select id="filterStatus" onchange="loadExpenses()" class="border rounded-lg px-3 py-1 text-sm">
-        <option value="">ทุกสถานะ</option>
-        <option value="paid">✅ จ่ายแล้ว</option>
-        <option value="pending">⏳ รอจ่าย</option>
-        <option value="overdue">⚠️ เลยกำหนด</option>
-      </select>
-      <select id="filterCategory" onchange="loadExpenses()" class="border rounded-lg px-3 py-1 text-sm">
-        <option value="">ทุกหมวดหมู่</option>
-        <option>ที่อยู่อาศัย</option>
-        <option>อินเทอร์เน็ต</option>
-        <option>โทรศัพท์</option>
-        <option>สาธารณูปโภค</option>
-        <option>ครอบครัว</option>
-        <option>เงินออม</option>
-        <option>ช้อปปิ้ง</option>
-        <option>บัตรเครดิต</option>
-        <option>อื่นๆ</option>
-      </select>
-    </div>
-
-    <div id="list" class="space-y-2"></div>
   </div>
 
-  <!-- ===== TAB: รายงาน ===== -->
-  <div id="page-report" class="hidden">
-    <div class="card bg-white rounded-xl p-4 shadow mb-4">
-      <div class="flex flex-wrap gap-2 mb-4">
-        <select id="reportYear" onchange="loadReport()" class="border rounded-lg px-3 py-2"></select>
-        <select id="reportMonth" onchange="loadReport()" class="border rounded-lg px-3 py-2">
-          <option value="">ทั้งปี</option>
-          <option value="1">มกราคม</option>
-          <option value="2">กุมภาพันธ์</option>
-          <option value="3">มีนาคม</option>
-          <option value="4">เมษายน</option>
-          <option value="5">พฤษภาคม</option>
-          <option value="6">มิถุนายน</option>
-          <option value="7">กรกฎาคม</option>
-          <option value="8">สิงหาคม</option>
-          <option value="9">กันยายน</option>
-          <option value="10">ตุลาคม</option>
-          <option value="11">พฤศจิกายน</option>
-          <option value="12">ธันวาคม</option>
-        </select>
-        <button onclick="exportCSV()" class="bg-green-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-600">📥 Export CSV</button>
-      </div>
-      <div id="reportSummary" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4"></div>
-      <div id="reportTable"></div>
+  <!-- ฟอร์มเพิ่มแม่แบบ -->
+  <div class="card bg-white rounded-xl p-4 shadow mb-4">
+    <h3 class="font-bold mb-3">➕ เพิ่มแม่แบบรายการ</h3>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
+      <input id="tplTitle" placeholder="ชื่อรายการ" class="border rounded-lg px-3 py-2 col-span-2 text-sm">
+      <input id="tplAmount" type="number" placeholder="จำนวนเงินเริ่มต้น" class="border rounded-lg px-3 py-2 text-sm">
+      <select id="tplCategory" class="border rounded-lg px-3 py-2 text-sm"></select>
+      <input id="tplDueDay" type="number" min="1" max="31" placeholder="วันครบกำหนด" class="border rounded-lg px-3 py-2 text-sm col-span-2">
     </div>
+    <button onclick="addTemplate()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold">บันทึก</button>
   </div>
 
+  <!-- รายการแม่แบบ -->
+  <div id="templateList"></div>
 </div>
-
-<!-- Modal ยืนยันลบ -->
-<div id="confirmModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
-  <div class="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-sm w-full">
-    <h3 class="font-bold mb-2">ยืนยันการลบ?</h3>
-    <p class="text-sm text-slate-500 mb-4">รายการนี้จะถูกลบถาวร</p>
-    <div class="flex gap-2 justify-end">
-      <button onclick="closeConfirm()" class="px-4 py-2 rounded-lg bg-gray-200">ยกเลิก</button>
-      <button id="confirmDeleteBtn" class="px-4 py-2 rounded-lg bg-red-500 text-white">ลบ</button>
-    </div>
-  </div>
-</div>
-
-<!-- App JS -->
-<script src="app.js"></script>
-</body>
-</html>
