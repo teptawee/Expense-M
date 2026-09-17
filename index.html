@@ -6,60 +6,17 @@
   <title>💰 ระบบบันทึกรายรับ-รายจ่าย</title>
   <link rel="stylesheet" href="css/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
-<!-- ============================================ -->
-<!-- ========== หน้า Login / Signup ============= -->
-<!-- ============================================ -->
-<div id="loginScreen" class="login-screen">
-  <div class="login-box">
-    <h1>💰 ระบบบันทึกรายรับ-รายจ่าย</h1>
-    <p class="login-subtitle" id="loginSubtitle">เข้าสู่ระบบเพื่อใช้งาน</p>
-
-    <div class="form-group">
-      <label>อีเมล</label>
-      <input type="email" id="authEmail" placeholder="you@example.com" autocomplete="email">
-    </div>
-
-    <div class="form-group">
-      <label>รหัสผ่าน</label>
-      <input type="password" id="authPassword" placeholder="อย่างน้อย 6 ตัวอักษร"
-             autocomplete="current-password">
-    </div>
-
-    <div class="login-actions">
-      <button class="btn btn-primary" id="btnLogin" onclick="authLogin()">🔐 เข้าสู่ระบบ</button>
-      <button class="btn btn-income" id="btnSignup" onclick="authSignup()">✨ สมัครใหม่</button>
-    </div>
-
-    <div class="login-footer">
-      <a href="#" onclick="authForgot();return false;">ลืมรหัสผ่าน?</a>
-    </div>
-
-    <div id="authMessage" class="auth-message"></div>
-  </div>
-</div>
-
-<!-- ============================================ -->
-<!-- ========== Loading Overlay ================= -->
-<!-- ============================================ -->
 <div id="loadingOverlay" style="display:none">
   <div class="spinner"></div>
   <div>กำลังโหลด...</div>
 </div>
 
-<!-- ============================================ -->
-<!-- ========== Main App ======================== -->
-<!-- ============================================ -->
-<div class="container" id="appContainer" style="display:none">
+<div class="container" id="appContainer">
   <header>
     <h1>💰 ระบบบันทึกรายรับ-รายจ่ายประจำเดือน</h1>
-    <div class="user-bar">
-      <span class="user-email" id="userEmail">-</span>
-      <button class="btn btn-neutral btn-sm" onclick="authLogout()">🚪 ออก</button>
-    </div>
     <div class="month-selector">
       <select id="selMonth"></select>
       <select id="selYear"></select>
@@ -157,14 +114,12 @@
   </div>
 </div>
 
-<div class="fab-group" id="fabGroup" style="display:none">
+<div class="fab-group" id="fabGroup">
   <button class="fab fab-income" onclick="openIncomeModal()" title="เพิ่มรายรับ">💵</button>
   <button class="fab fab-expense" onclick="openAddModal()" title="เพิ่มรายจ่าย">+</button>
 </div>
 
-<!-- ============================================ -->
-<!-- ========== Modal รายจ่าย =================== -->
-<!-- ============================================ -->
+<!-- Modal รายจ่าย -->
 <div class="modal-overlay" id="modalForm">
   <div class="modal">
     <h3 id="modalTitle">เพิ่มรายการรายจ่าย</h3>
@@ -189,9 +144,7 @@
   </div>
 </div>
 
-<!-- ============================================ -->
-<!-- ========== Modal รายรับ ==================== -->
-<!-- ============================================ -->
+<!-- Modal รายรับ -->
 <div class="modal-overlay" id="modalIncome">
   <div class="modal">
     <h3 id="incomeModalTitle">เพิ่มรายรับใหม่</h3>
@@ -208,11 +161,7 @@
   </div>
 </div>
 
-<!-- ============================================ -->
-<!-- ========== Scripts ========================= -->
-<!-- ============================================ -->
 <script src="js/config.js"></script>
-<script src="js/auth.js"></script>
 <script src="js/api.js"></script>
 <script src="js/app.js"></script>
 </body>
