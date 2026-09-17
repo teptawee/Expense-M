@@ -21,7 +21,7 @@ function hideLoading() {
 }
 
 // ============================================
-// ====== Init (เรียกหลัง login) ===============
+// ====== Init =================================
 // ============================================
 async function init() {
   const monthNames = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
@@ -62,7 +62,6 @@ async function loadAll(forceRefresh = false) {
     const t1 = performance.now();
     console.log(`⏱️ getDashboard loaded in ${Math.round(t1 - t0)} ms`);
 
-    // โหลด categories (ครั้งเดียว)
     if (!categoriesLoaded && data.categories) {
       const selF = document.getElementById('fCategory');
       selF.innerHTML = '';
@@ -78,7 +77,6 @@ async function loadAll(forceRefresh = false) {
     allTransactions = data.transactions || [];
     allIncomes = data.incomes || [];
 
-    // cache localStorage
     try {
       localStorage.setItem(`dash_${currentYear}_${currentMonth}`, JSON.stringify({
         data, ts: Date.now()
@@ -89,14 +87,12 @@ async function loadAll(forceRefresh = false) {
     renderIncomeTable();
     renderSummary(data.summary);
 
-    // ถ้าอยู่ tab report → refresh
     if (document.getElementById('panel-report').classList.contains('active')) {
       loadYearlyReport();
     }
   } catch (err) {
     console.error('loadAll error:', err);
 
-    // fallback cache
     const cached = localStorage.getItem(`dash_${currentYear}_${currentMonth}`);
     if (cached) {
       try {
@@ -156,7 +152,6 @@ function renderSummary(s) {
     banner.style.display = 'none';
   }
 
-  // ===== Category bars =====
   const container = document.getElementById('categoryBars');
   container.innerHTML = '';
   const byCat = s.byCategory || {};
@@ -174,7 +169,6 @@ function renderSummary(s) {
     container.appendChild(div);
   }
 
-  // ===== Pie chart =====
   if (pieChartInstance) pieChartInstance.destroy();
   pieChartInstance = new Chart(document.getElementById('pieChart').getContext('2d'), {
     type: 'doughnut',
@@ -192,7 +186,6 @@ function renderSummary(s) {
     }
   });
 
-  // ===== Compare chart =====
   if (compareChartInstance) compareChartInstance.destroy();
   compareChartInstance = new Chart(document.getElementById('compareChart').getContext('2d'), {
     type: 'bar',
@@ -290,302 +283,4 @@ function actionButtons(t) {
     b += `<button class="btn btn-success btn-sm" onclick="markPaid(${t.id})">จ่ายแล้ว</button>`;
     b += `<button class="btn btn-neutral btn-sm" onclick="markNoBalance(${t.id})">ไม่มียอดค้าง</button>`;
   } else if (t.status === 'จ่ายแล้ว') {
-    b += `<button class="btn btn-warning btn-sm" onclick="markUnpaid(${t.id})">ยกเลิกจ่าย</button>`;
-  } else {
-    b += `<button class="btn btn-primary btn-sm" onclick="markUnpaid(${t.id})">กลับเป็นรอจ่าย</button>`;
-  }
-  b += `<button class="btn btn-primary btn-sm" onclick='editTransaction(${tJson})'>แก้ไข</button>`;
-  b += `<button class="btn btn-danger btn-sm" onclick="deleteTransaction(${t.id})">ลบ</button>`;
-  return b;
-}
-
-// ============================================
-// ====== Actions ==============================
-// ============================================
-async function markPaid(id) {
-  try { await API.markAsPaid(id); loadAll(); }
-  catch (e) { alert('❌ ' + e.message); }
-}
-async function markUnpaid(id) {
-  try { await API.markAsUnpaid(id); loadAll(); }
-  catch (e) { alert('❌ ' + e.message); }
-}
-async function markNoBalance(id) {
-  try { await API.markAsNoBalance(id); loadAll(); }
-  catch (e) { alert('❌ ' + e.message); }
-}
-async function deleteTransaction(id) {
-  if (!confirm('ยืนยันการลบ?')) return;
-  try { await API.deleteTransaction(id); loadAll(); }
-  catch (e) { alert('❌ ' + e.message); }
-}
-async function deleteIncomeRow(id) {
-  if (!confirm('ยืนยันการลบรายรับนี้?')) return;
-  try { await API.deleteIncome(id); loadAll(); }
-  catch (e) { alert('❌ ' + e.message); }
-}
-
-// ============================================
-// ====== Modal รายจ่าย ========================
-// ============================================
-function openAddModal() {
-  document.getElementById('modalTitle').textContent = 'เพิ่มรายการรายจ่าย';
-  ['editId', 'fItem', 'fAmount', 'fDueDate', 'fNote'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('fStatus').value = 'รอจ่าย';
-  document.getElementById('modalForm').classList.add('active');
-}
-
-function editTransaction(t) {
-  document.getElementById('modalTitle').textContent = 'แก้ไขรายการ';
-  document.getElementById('editId').value = t.id;
-  document.getElementById('fCategory').value = t.category;
-  document.getElementById('fItem').value = t.item;
-  document.getElementById('fAmount').value = t.amount;
-  document.getElementById('fStatus').value = t.status;
-  document.getElementById('fDueDate').value = t.dueDate || '';
-  document.getElementById('fNote').value = t.note || '';
-  document.getElementById('modalForm').classList.add('active');
-}
-
-function closeModal() {
-  document.getElementById('modalForm').classList.remove('active');
-}
-
-async function saveTransaction() {
-  const id = document.getElementById('editId').value;
-  const data = {
-    id, year: currentYear, month: currentMonth,
-    category: document.getElementById('fCategory').value,
-    item: document.getElementById('fItem').value,
-    amount: document.getElementById('fAmount').value,
-    status: document.getElementById('fStatus').value,
-    dueDate: document.getElementById('fDueDate').value,
-    note: document.getElementById('fNote').value
-  };
-  if (!data.item || data.amount === '') {
-    alert('กรุณากรอกรายการและจำนวนเงิน'); return;
-  }
-  try {
-    if (id) await API.updateTransaction(data);
-    else await API.addTransaction(data);
-    closeModal(); loadAll();
-  } catch (e) { alert('❌ บันทึกไม่สำเร็จ: ' + e.message); }
-}
-
-// ============================================
-// ====== Modal รายรับ =========================
-// ============================================
-function openIncomeModal() {
-  document.getElementById('incomeModalTitle').textContent = 'เพิ่มรายรับใหม่';
-  ['incomeEditId', 'incItem', 'incAmount', 'incNote'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('incDate').value = new Date().toISOString().slice(0, 10);
-  document.getElementById('modalIncome').classList.add('active');
-}
-
-function editIncomeRow(inc) {
-  document.getElementById('incomeModalTitle').textContent = 'แก้ไขรายรับ';
-  document.getElementById('incomeEditId').value = inc.id;
-  document.getElementById('incCategory').value = inc.category;
-  document.getElementById('incItem').value = inc.item;
-  document.getElementById('incAmount').value = inc.amount;
-  document.getElementById('incDate').value = inc.date || '';
-  document.getElementById('incNote').value = inc.note || '';
-  document.getElementById('modalIncome').classList.add('active');
-}
-
-function closeIncomeModal() {
-  document.getElementById('modalIncome').classList.remove('active');
-}
-
-async function saveIncome() {
-  const id = document.getElementById('incomeEditId').value;
-  const data = {
-    id, year: currentYear, month: currentMonth,
-    category: document.getElementById('incCategory').value,
-    item: document.getElementById('incItem').value,
-    amount: document.getElementById('incAmount').value,
-    date: document.getElementById('incDate').value,
-    note: document.getElementById('incNote').value
-  };
-  if (!data.item || data.amount === '') {
-    alert('กรุณากรอกรายการและจำนวนเงิน'); return;
-  }
-  try {
-    if (id) await API.updateIncome(data);
-    else await API.addIncome(data);
-    closeIncomeModal(); loadAll();
-  } catch (e) { alert('❌ บันทึกไม่สำเร็จ: ' + e.message); }
-}
-
-// ============================================
-// ====== Generate month =======================
-// ============================================
-async function generateMonth() {
-  if (!confirm(`สร้างรายการสำหรับเดือน ${currentMonth}/${currentYear}?`)) return;
-  showLoading();
-  try {
-    const res = await API.generateForMonth(currentYear, currentMonth);
-    alert(`✅ สร้างรายการใหม่ ${res.generated} รายการ`);
-    loadAll();
-  } catch (e) {
-    hideLoading();
-    alert('❌ สร้างรายการไม่สำเร็จ: ' + e.message);
-  }
-}
-
-// ============================================
-// ====== Yearly report ========================
-// ============================================
-async function loadYearlyReport() {
-  showLoading();
-  try {
-    const data = await API.getYearlySummary(currentYear);
-    const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.',
-                    'ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-    const expenseValues = months.map((_, i) => data.byMonth[i + 1] || 0);
-    const incomeValues = months.map((_, i) => data.incomeByMonth[i + 1] || 0);
-
-    if (barChartInstance) barChartInstance.destroy();
-    barChartInstance = new Chart(document.getElementById('barChart').getContext('2d'), {
-      type: 'bar',
-      data: {
-        labels: months,
-        datasets: [
-          { label: 'รายรับ', data: incomeValues, backgroundColor: '#0F9D58' },
-          { label: 'รายจ่าย', data: expenseValues, backgroundColor: '#EA4335' }
-        ]
-      },
-      options: {
-        plugins: { legend: { position: 'bottom' } },
-        scales: { x: { ticks: { font: { size: 10 } } } }
-      }
-    });
-
-    document.getElementById('cardYearIncome').textContent = fmt(data.totalIncomeYear);
-    document.getElementById('cardYearExpense').textContent = fmt(data.totalExpenseYear);
-    const netEl = document.getElementById('cardYearNet');
-    netEl.textContent = fmt(data.netYear);
-    netEl.classList.toggle('negative', data.netYear < 0);
-
-    const tb = document.querySelector('#tableReport tbody');
-    tb.innerHTML = '';
-    for (const cat in data.byCategory) {
-      tb.innerHTML += `<tr><td data-label="หมวดหมู่">${cat}</td>
-        <td data-label="ยอดรวม">${data.byCategory[cat].toLocaleString()} ฿</td></tr>`;
-    }
-  } catch (e) {
-    alert('❌ โหลดรายงานไม่สำเร็จ: ' + e.message);
-  } finally {
-    hideLoading();
-  }
-}
-
-// ============================================
-// ====== Tabs =================================
-// ============================================
-function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('panel-' + tab).classList.add('active');
-  if (tab === 'report') loadYearlyReport();
-}
-
-// ============================================
-// ====== Auth UI ==============================
-// ============================================
-function showMessage(msg, isError = true) {
-  const el = document.getElementById('authMessage');
-  el.textContent = msg;
-  el.className = 'auth-message ' + (isError ? 'error' : 'success');
-}
-
-async function authLogin() {
-  const email = document.getElementById('authEmail').value.trim();
-  const password = document.getElementById('authPassword').value;
-  if (!email || !password) return showMessage('กรุณากรอกอีเมลและรหัสผ่าน');
-
-  const btn = document.getElementById('btnLogin');
-  btn.disabled = true; btn.textContent = '⏳ กำลังเข้าสู่ระบบ...';
-
-  try {
-    await Auth.login(email, password);
-    enterApp();
-  } catch (err) {
-    showMessage('❌ ' + (err.message || 'เข้าสู่ระบบไม่สำเร็จ'));
-  } finally {
-    btn.disabled = false; btn.textContent = '🔐 เข้าสู่ระบบ';
-  }
-}
-
-async function authSignup() {
-  const email = document.getElementById('authEmail').value.trim();
-  const password = document.getElementById('authPassword').value;
-  if (!email || !password) return showMessage('กรุณากรอกอีเมลและรหัสผ่าน');
-  if (password.length < 6) return showMessage('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
-
-  const btn = document.getElementById('btnSignup');
-  btn.disabled = true; btn.textContent = '⏳ กำลังสมัคร...';
-
-  try {
-    const data = await Auth.signup(email, password);
-    if (data.user && !data.session) {
-      showMessage('✅ สมัครสำเร็จ! กรุณายืนยันอีเมลก่อนเข้าใช้งาน', false);
-    } else {
-      showMessage('✅ สมัครสำเร็จ!', false);
-      setTimeout(() => enterApp(), 800);
-    }
-  } catch (err) {
-    showMessage('❌ ' + (err.message || 'สมัครไม่สำเร็จ'));
-  } finally {
-    btn.disabled = false; btn.textContent = '✨ สมัครใหม่';
-  }
-}
-
-async function authForgot() {
-  const email = document.getElementById('authEmail').value.trim();
-  if (!email) return showMessage('กรุณากรอกอีเมลก่อน');
-  try {
-    await Auth.resetPassword(email);
-    showMessage('📧 ส่งลิงก์รีเซ็ตรหัสผ่านไปที่อีเมลแล้ว', false);
-  } catch (err) {
-    showMessage('❌ ' + err.message);
-  }
-}
-
-async function authLogout() {
-  if (!confirm('ออกจากระบบ?')) return;
-  await Auth.logout();
-  document.getElementById('appContainer').style.display = 'none';
-  document.getElementById('fabGroup').style.display = 'none';
-  document.getElementById('loginScreen').style.display = 'flex';
-  categoriesLoaded = false;
-  document.getElementById('authEmail').value = '';
-  document.getElementById('authPassword').value = '';
-  document.getElementById('authMessage').className = 'auth-message';
-}
-
-function enterApp() {
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('appContainer').style.display = 'block';
-  document.getElementById('fabGroup').style.display = 'flex';
-
-  const user = Auth.getUser();
-  document.getElementById('userEmail').textContent = user?.email || '-';
-
-  // reset state
-  categoriesLoaded = false;
-  init();
-}
-
-// ============================================
-// ====== Start ================================
-// ============================================
-window.addEventListener('DOMContentLoaded', async () => {
-  await Auth.init();
-  if (Auth.getSession()) {
-    enterApp();
-  } else {
-    document.getElementById('loginScreen').style.display = 'flex';
-  }
-});
+    b += `<button class="btn btn-warning btn-sm" onclick="markUnpaid(${t.id})">ยกเลิกจ่าย</button>
